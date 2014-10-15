@@ -56,7 +56,7 @@ module Kitchen
       default_config :salt_copy_filter, []
       default_config :is_file_root, false
 
-      default_config :dependancies, []
+      default_config :dependencies, []
 
       # salt-call version that supports the undocumented --retcode-passthrough command
       RETCODE_VERSION = '0.17.5'
@@ -157,7 +157,7 @@ module Kitchen
         else
           prepare_formula config[:kitchen_root], config[:formula]
 
-          config[:dependancies].each do |formula|
+          config[:dependencies].each do |formula|
             prepare_formula formula[:path], formula[:name]
           end
         end
@@ -218,19 +218,21 @@ module Kitchen
 
       def prepare_minion
         info("Preparing salt-minion")
+	config_roots = {
+	  "file_roots" => {
+	    "base" => Array(unsymbolize(config[:salt_file_root]))
+	  },
+	  "pillar_roots" => {
+	    "base" => Array(unsymbolize(config[:salt_pillar_root]))
+	  }
+	}.to_yaml.gsub!("---\n", '')
 
         minion_config_content = <<-MINION_CONFIG.gsub(/^ {10}/, '')
           state_top: top.sls
 
           file_client: local
 
-          file_roots:
-           base:
-             - #{File.join(config[:root_path], config[:salt_file_root])}
-
-          pillar_roots:
-           base:
-             - #{File.join(config[:root_path], config[:salt_pillar_root])}
+          #{config_roots}
         MINION_CONFIG
 
         # create the temporary path for the salt-minion config file
